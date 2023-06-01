@@ -1,57 +1,68 @@
 #include "binary_trees.h"
 
 /**
- * heap_insert - inserts a value in Max Binary Heap.
- * @root: double pointer to the root node of the Heap to insert the value.
- * @value: value to store in the node to be inserted.
+ * heap_insert - inserts a value in Max Binary Heap
+ * @root: a double pointer to the root node of the Heap to insert the value
+ * @value: the value to store in the node to be inserted
  *
- * Return: pointer to the created node, or NULL on failure.
+ * Return: a pointer to the created node
+ *         NULL on failure
  */
 heap_t *heap_insert(heap_t **root, int value)
 {
-	heap_t *new_node = NULL, *tmp = NULL;
+	heap_t *tree, *new, *flip;
+	int size, leaves, sub, bit, level, tmp;
 
 	if (!root)
 		return (NULL);
+	if (!(*root))
+		return (*root = binary_tree_node(NULL, value));
+	tree = *root;
+	size = binary_tree_size(tree);
+	leaves = size;
+	for (level = 0, sub = 1; leaves >= sub; sub *= 2, level++)
+		leaves -= sub;
+	/* subtract all nodes except for bottom-most level */
 
-	new_node = binary_tree_node(NULL, value);
-	if (!new_node)
-		return (NULL);
-	if (!*root)
+	for (bit = 1 << (level - 1); bit != 1; bit >>= 1)
+		tree = leaves & bit ? tree->right : tree->left;
+	/*
+	 * Traverse tree to first empty slot based on the binary
+	 * representation of the number of leaves.
+	 * Example -
+	 * If there are 12 nodes in a complete tree, there are 5 leaves on
+	 * the 4th tier of the tree. 5 is 101 in binary. 1 corresponds to
+	 * right, 0 to left.
+	 * The first empty node is 101 == RLR, *root->right->left->right
+	 */
+
+	new = binary_tree_node(tree, value);
+	leaves & 1 ? (tree->right = new) : (tree->left = new);
+
+	flip = new;
+	for (; flip->parent && (flip->n > flip->parent->n); flip = flip->parent)
 	{
-		*root = new_node; /* If root is empty, set the root to the new node */
-		return (new_node);
+		tmp = flip->n;
+		flip->n = flip->parent->n;
+		flip->parent->n = tmp;
+		new = new->parent;
 	}
-	/* If the root is not empty, find the first available spot in the tree */
-	tmp = *root;
-	while (tmp) /* If tmp is not empty */
-	{	/* Check if the left node is empty and the right node is not */
-		if (tmp->left && !tmp->right)
-		{	/* If it is set the right node to the new node */
-			tmp->right = new_node; /*  set the parent of the new node to tmp */
-			new_node->parent = tmp;
-			break;
-		}
-		else if (!tmp->left) /* If left node is not empty and right node is */
-		{
-			tmp->left = new_node; /* set the left node to the new node */
-			new_node->parent = tmp; /* set the parent of the new node to tmp */
-			break;
-		} /* If neither of those are true */
-		/* check if left node value is less than right node value*/
-		else if (tmp->left->n < tmp->right->n)
-			tmp = tmp->left; /* If yes, set tmp to the left node */
-		else
-			tmp = tmp->right; /* If not, set tmp to the right node. */
-	}
-	/*  check if new node parent is empty and new node value is greater than parent value of new node. */
-	while (new_node->parent && new_node->n > new_node->parent->n)
-	{	/* If yes, set new node value to parent value of the new node */
-		new_node->n = new_node->parent->n;
-		new_node->parent->n = value; /* set parent of the new node value to the value */
-		new_node = new_node->parent; /* set the new node to the parent of the new node */
-	}
-	return (new_node); /* return new node */
+	/* Flip values with parent until parent value exceeds new value */
+
+	return (new);
 }
 
-/* CODE DOESN'T PASS ALL CHECKS */
+/**
+ * binary_tree_size - measures the size of a binary tree
+ * @tree: tree to measure the size of
+ *
+ * Return: size of the tree
+ *         0 if tree is NULL
+ */
+size_t binary_tree_size(const binary_tree_t *tree)
+{
+	if (!tree)
+		return (0);
+
+	return (binary_tree_size(tree->left) + binary_tree_size(tree->right) + 1);
+}
